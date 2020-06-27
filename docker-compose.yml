@@ -4,57 +4,41 @@ services:
 
   openproject:
     container_name: openproject
-    image: openproject/community:10
-    build: ./openproject
-    restart: unless-stopped
-    volumes:
-      - /var/lib/openproject/pgdata:/var/lib/postgresql/9.4/main
-      - /var/lib/openproject/logs:/var/log/supervisor
-      - /var/lib/openproject/static:/var/db/openproject
+    build:
+      context: openproject
     ports:
-      - "5432:5432"
+      - 5432:5432
+      - 8090:80
 
   gitbucket:
     container_name: gitbucket
-    image: gitbucket/gitbucket
-    build: ./gitbucket
+    build: 
+      context: gitbucket
     ports:
+      - "8080:8080"
       - "29418:29418"
-    volumes:
-      - dbdata:/data
-      - ./gitbucket:/gitbucket
 
   drone-server:
-    image: drone/drone:0.8
+    container_name: drone-server
+    image: drone/drone:latest
     ports:
-      - "8000:8000"
-    depends_on: 
-      - gitbucket
+      - 80:8000
+      - 9000
     volumes:
       - ./drone:/var/lib/drone/
     environment:
       - DRONE_OPEN=true
-      - DRONE_HOST=http://drone:8000
-      - DRONE_SECRET=admin
-      - DRONE_ADMIN=admin
-      - DRONE_DEBUG=true
+      - DRONE_HOST=http://localhost:8000
+      - DRONE_GITBUCKET_URL=http://localhost:8080
       - DRONE_GITBUCKET=true
-      - DRONE_GITBUCKET_URL=http://gitbucket:29418
-      - DRONE_GITBUCKET_SKIP_VERIFY=true
-    volumes:
-      - ./drone:/var/lib/drone/
 
   drone-agent:
-    image: drone/agent:0.8
-    restart: always
+    container_name: drone-agent
+    image: drone/agent:latest
+    command: agent
     depends_on:
       - drone-server
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:
-      - DRONE_SERVER=drone:9000
-      - DRONE_SECRET=123456
-      - DRONE_MAX_PROCS=3
-
-volumes:
-    dbdata:
+      - DRONE_SERVER=localhost:9000

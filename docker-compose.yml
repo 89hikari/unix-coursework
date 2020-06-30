@@ -19,43 +19,32 @@ services:
       - "29418:29418"
 
   drone-server:
-    container_name: drone_server
+    container_name: drone-server
     image: drone/drone:latest
     ports:
-      - 80:80
-      - 443:443
+      - 80:8000
+      - 9000
     volumes:
-      - /var/lib/drone:/data
-      - /var/run/docker.sock:/var/run/docker.sock
-      - /etc/gitbucket/:/etc/gitbucket/
+      - ./drone:/var/lib/drone/
     restart: always
+    depends_on:
+      - gitbucket
     environment:
-      - DRONE_GIT_PASSWORD=root
-      - DRONE_GIT_USERNAME=root
-      - DRONE_AGENTS_ENABLED=true
-      - DRONE_RPC_SECRET=secret
-      - DRONE_STASH_SERVER=https://localhost:8080
-      - DRONE_STASH_CONSUMER_KEY=OauthKey
-      - DRONE_STASH_PRIVATE_KEY=/etc/gitbucket/key.pem
-      - DRONE_SERVER_HOST=<url for the drone server>
-      - DRONE_SERVER_PROTO=https
-      - DRONE_TLS_AUTOCERT=true
-      - DRONE_USER_CREATE=username:root,admin:true
-      - DRONE_LOGS_TRACE=true
-      - DRONE_LOGS_PRETTY=true
-      - DRONE_LOGS_COLOR=true
+      - DRONE_OPEN=true
+      - DRONE_HOST=http://localhost:8000
+      - DRONE_GITHUB=true
+      - DRONE_GITHUB_URL=http://localhost:8080
+      - DRONE_SECRET=secret
 
   drone-agent:
-    container_name: drone_agent
+    container_name: drone-agent
     image: drone/agent:latest
+    command: agent
+    restart: always
+    depends_on:
+      - drone-server
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    restart: always
     environment:
-      - DRONE_RPC_HOST=drone-server
-      - DRONE_RPC_SECRET=secret
-      - DRONE_RUNNER_CAPACITY=1
-      - DRONE_RUNNER_NAME=root
-      - DRONE_LOGS_TRACE=true
-      - DRONE_LOGS_PRETTY=true
-      - DRONE_LOGS_COLOR=true
+      - DRONE_SERVER=localhost:9000
+      - DRONE_SECRET=secret
